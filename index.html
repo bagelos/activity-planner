@@ -2,126 +2,153 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>My Dashboard</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Your Activities Dashboard</title>
     <style>
         :root { --bg: #1a1a2e; --card: #16213e; --accent: #4ecca3; --text: #ffffff; }
-        body { font-family: sans-serif; background: var(--bg); color: var(--text); padding: 20px; text-align: center; }
+        body { font-family: sans-serif; background: var(--bg); color: var(--text); padding: 15px; margin: 0; }
         
-        .progress-container { background: #0f3460; border-radius: 20px; height: 30px; width: 100%; margin: 20px 0; border: 2px solid var(--accent); overflow: hidden; }
-        #progress-bar { background: var(--accent); height: 100%; width: 0%; transition: width 0.5s ease; }
+        /* Day Selector */
+        .day-strip { display: flex; justify-content: space-between; margin-bottom: 20px; gap: 5px; }
+        .day-btn { 
+            flex: 1; padding: 10px 2px; background: #0f3460; border: 1px solid #444; 
+            color: white; border-radius: 8px; font-size: 12px; cursor: pointer;
+        }
+        .day-btn.active { background: var(--accent); color: #1a1a2e; font-weight: bold; border-color: white; }
 
-        .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; max-width: 500px; margin: 0 auto; }
+        h2 { margin: 10px 0; color: var(--accent); }
+
+        /* Activities Grid */
+        .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 10px; }
         .tile { 
-            background: var(--card); border-radius: 15px; padding: 30px 10px; 
-            border: 2px solid #0f3460; cursor: pointer; font-weight: bold;
-            display: flex; align-items: center; justify-content: center;
+            background: var(--card); border-radius: 12px; padding: 20px 10px; 
+            border: 2px solid #0f3460; text-align: center; font-weight: bold; cursor: pointer;
         }
-        .tile.completed { border-color: var(--accent); opacity: 0.3; background: #0f3460; }
 
-        /* Parent Portal Styling */
+        /* Admin/Library Section */
         #parent-portal { 
-            display: none; margin-top: 30px; padding: 20px; 
-            background: #243447; border-radius: 15px; border: 2px solid #444; 
-            text-align: left; max-width: 500px; margin-left: auto; margin-right: auto;
+            display: none; background: #243447; padding: 15px; border-radius: 15px; 
+            margin-top: 30px; text-align: left; border: 2px solid orange;
         }
-        .input-group { margin-bottom: 10px; }
-        input { width: 90%; padding: 10px; border-radius: 5px; border: 1px solid #ccc; font-size: 16px; }
+        .library-item { display: flex; margin-bottom: 8px; gap: 5px; }
+        input { flex: 1; padding: 8px; border-radius: 4px; border: none; }
         
-        .admin-trigger-btn { 
-            margin-top: 50px; background: transparent; color: #444; 
-            border: 1px solid #333; padding: 10px 20px; border-radius: 5px; cursor: pointer;
-        }
+        .admin-trigger { margin-top: 50px; opacity: 0.3; font-size: 10px; background: none; border: none; color: gray; width: 100%; }
+        .add-btn { background: var(--accent); color: black; padding: 10px; border-radius: 5px; width: 100%; margin-top: 10px; border: none; font-weight: bold; }
     </style>
 </head>
 <body>
 
-    <h2>Control Center</h2>
-    <div class="progress-container"><div id="progress-bar"></div></div>
+    <h2 id="title-display">Your Activities</h2>
     
-    <div class="grid" id="task-grid"></div>
+    <div class="day-strip" id="day-selector">
+        <button class="day-btn active" onclick="setDay(0)">Day 1</button>
+        <button class="day-btn" onclick="setDay(1)">Day 2</button>
+        <button class="day-btn" onclick="setDay(2)">Day 3</button>
+        <button class="day-btn" onclick="setDay(3)">Day 4</button>
+        <button class="day-btn" onclick="setDay(4)">Day 5</button>
+    </div>
 
-    <div id="status" style="margin-top: 20px; color: #94a3b8;">Systems Ready</div>
+    <div class="grid" id="activity-grid"></div>
 
-    <button class="admin-trigger-btn" onclick="handleSecretTap()">Open Admin Menu (Tap 3x)</button>
+    <button class="admin-trigger" onclick="handleSecretTap()">Admin Settings</button>
 
     <div id="parent-portal">
-        <h3>Edit Missions</h3>
-        <div id="editor-list"></div>
-        <button onclick="saveTasks()" style="background: var(--accent); padding: 10px 20px; border: none; border-radius: 5px; font-weight: bold;">Save & Close</button>
-        <button onclick="resetProgress()" style="padding: 10px 20px; margin-left: 10px;">Reset All Progress</button>
+        <h3>Activity Library (Master List)</h3>
+        <div id="library-list"></div>
+        <button class="add-btn" onclick="addLibrarySlot()">+ Add New Activity Slot</button>
+        <hr>
+        <button class="add-btn" onclick="saveLibrary()" style="background: white;">Save Library</button>
+        <button class="add-btn" onclick="location.reload()" style="background: gray; color: white;">Close Settings</button>
     </div>
 
 <script>
+    let currentDayIndex = 0;
     let tapCount = 0;
-    // Default tasks if none exist
-    let currentTasks = JSON.parse(localStorage.getItem('myTasks')) || [
-        { label: "Mission 1", done: false },
-        { label: "Mission 2", done: false },
-        { label: "Mission 3", done: false },
-        { label: "Mission 4", done: false }
+
+    // Load Library from Storage or Defaults
+    let library = JSON.parse(localStorage.getItem('activityLibrary')) || [
+        "Lego Build", "Minecraft", "Drawing", "Trampoline", "Snack Time", 
+        "Science Experiment", "Reading", "Walk", "Movie", "Puzzles"
     ];
 
-    function renderBoard() {
-        const grid = document.getElementById('task-grid');
-        grid.innerHTML = '';
-        let doneCount = 0;
+    // Schedule: Array of 5 arrays (one for each day) containing indices of activities done
+    let scheduleData = JSON.parse(localStorage.getItem('scheduleData')) || [[], [], [], [], []];
 
-        currentTasks.forEach((task, index) => {
-            const div = document.createElement('div');
-            div.className = `tile ${task.done ? 'completed' : ''}`;
-            div.innerHTML = `<span>${task.label}</span>`;
-            div.onclick = () => toggleTask(index);
-            grid.appendChild(div);
-            if(task.done) doneCount++;
+    function setDay(index) {
+        currentDayIndex = index;
+        document.querySelectorAll('.day-btn').forEach((btn, i) => {
+            btn.classList.toggle('active', i === index);
         });
-
-        const progress = (doneCount / currentTasks.length) * 100;
-        document.getElementById('progress-bar').style.width = progress + '%';
+        renderActivities();
     }
 
-    function toggleTask(index) {
-        currentTasks[index].done = !currentTasks[index].done;
-        localStorage.setItem('myTasks', JSON.stringify(currentTasks));
-        renderBoard();
+    function renderActivities() {
+        const grid = document.getElementById('activity-grid');
+        grid.innerHTML = '';
+        
+        // Show only activities NOT yet completed for this day
+        library.forEach((activity, activityIndex) => {
+            if (!scheduleData[currentDayIndex].includes(activityIndex)) {
+                const div = document.createElement('div');
+                div.className = 'tile';
+                div.innerText = activity;
+                div.onclick = () => completeActivity(activityIndex);
+                grid.appendChild(div);
+            }
+        });
+
+        if (grid.innerHTML === '') {
+            grid.innerHTML = "<p style='grid-column: 1/-1;'>All activities for today are complete! 🌟</p>";
+        }
+    }
+
+    function completeActivity(activityIndex) {
+        scheduleData[currentDayIndex].push(activityIndex);
+        localStorage.setItem('scheduleData', JSON.stringify(scheduleData));
+        renderActivities();
     }
 
     function handleSecretTap() {
         tapCount++;
         if (tapCount >= 3) {
             document.getElementById('parent-portal').style.display = 'block';
-            renderEditor();
+            renderLibraryEditor();
             tapCount = 0;
         }
     }
 
-    function renderEditor() {
-        const container = document.getElementById('editor-list');
-        container.innerHTML = '';
-        currentTasks.forEach((task, i) => {
-            container.innerHTML += `<div class="input-group">
-                <input type="text" value="${task.label}" id="edit-${i}">
+    function renderLibraryEditor() {
+        const list = document.getElementById('library-list');
+        list.innerHTML = '';
+        library.forEach((item, i) => {
+            list.innerHTML += `<div class="library-item">
+                <input type="text" value="${item}" id="lib-${i}">
+                <button onclick="removeSlot(${i})" style="background:red; color:white; border:none; border-radius:4px;">X</button>
             </div>`;
         });
     }
 
-    function saveTasks() {
-        currentTasks.forEach((task, i) => {
-            task.label = document.getElementById(`edit-${i}`).value;
-        });
-        localStorage.setItem('myTasks', JSON.stringify(currentTasks));
-        document.getElementById('parent-portal').style.display = 'none';
-        renderBoard();
+    function addLibrarySlot() {
+        library.push("New Activity");
+        renderLibraryEditor();
     }
 
-    function resetProgress() {
-        currentTasks.forEach(t => t.done = false);
-        localStorage.setItem('myTasks', JSON.stringify(currentTasks));
-        document.getElementById('parent-portal').style.display = 'none';
-        renderBoard();
+    function removeSlot(i) {
+        library.splice(i, 1);
+        renderLibraryEditor();
     }
 
-    renderBoard();
+    function saveLibrary() {
+        const inputs = document.querySelectorAll('[id^="lib-"]');
+        library = Array.from(inputs).map(input => input.value);
+        localStorage.setItem('activityLibrary', JSON.stringify(library));
+        // Reset schedule if library changes significantly? 
+        // For now, just refresh.
+        location.reload();
+    }
+
+    renderActivities();
 </script>
 </body>
 </html>
