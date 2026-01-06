@@ -2,55 +2,59 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Zoe's Activity Dashboard</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My Dashboard</title>
     <style>
         :root { --bg: #1a1a2e; --card: #16213e; --accent: #4ecca3; --text: #ffffff; }
-        body { font-family: 'Segoe UI', sans-serif; background: var(--bg); color: var(--text); margin: 0; padding: 20px; touch-action: manipulation; }
+        body { font-family: sans-serif; background: var(--bg); color: var(--text); padding: 20px; text-align: center; }
         
-        /* Progress Bar */
-        .progress-container { background: #0f3460; border-radius: 20px; height: 25px; width: 100%; margin: 20px 0; border: 2px solid var(--accent); overflow: hidden; }
+        .progress-container { background: #0f3460; border-radius: 20px; height: 30px; width: 100%; margin: 20px 0; border: 2px solid var(--accent); overflow: hidden; }
         #progress-bar { background: var(--accent); height: 100%; width: 0%; transition: width 0.5s ease; }
 
-        /* Grid Layout */
-        .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
+        .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; max-width: 500px; margin: 0 auto; }
         .tile { 
-            background: var(--card); border-radius: 15px; padding: 25px 10px; text-align: center; 
-            border: 1px solid #0f3460; box-shadow: 0 4px 15px rgba(0,0,0,0.3); font-weight: bold;
-            min-height: 80px; display: flex; align-items: center; justify-content: center;
+            background: var(--card); border-radius: 15px; padding: 30px 10px; 
+            border: 2px solid #0f3460; cursor: pointer; font-weight: bold;
+            display: flex; align-items: center; justify-content: center;
         }
-        .tile.completed { border-color: var(--accent); opacity: 0.3; }
+        .tile.completed { border-color: var(--accent); opacity: 0.3; background: #0f3460; }
 
-        /* Hidden Parent Section */
-        #parent-portal { display: none; margin-top: 40px; padding: 20px; background: #243447; border-radius: 15px; border: 1px solid #444; }
-        .admin-btn { background: #444; color: white; border: none; padding: 10px; margin: 5px; border-radius: 5px; font-size: 12px; }
+        /* Parent Portal Styling */
+        #parent-portal { 
+            display: none; margin-top: 30px; padding: 20px; 
+            background: #243447; border-radius: 15px; border: 2px solid #444; 
+            text-align: left; max-width: 500px; margin-left: auto; margin-right: auto;
+        }
         .input-group { margin-bottom: 10px; }
-        input { width: 80%; padding: 8px; border-radius: 5px; border: none; }
+        input { width: 90%; padding: 10px; border-radius: 5px; border: 1px solid #ccc; font-size: 16px; }
         
-        .secret-trigger { height: 40px; width: 100%; margin-top: 50px; opacity: 0.1; }
+        .admin-trigger-btn { 
+            margin-top: 50px; background: transparent; color: #444; 
+            border: 1px solid #333; padding: 10px 20px; border-radius: 5px; cursor: pointer;
+        }
     </style>
 </head>
 <body>
 
-    <div id="main-ui">
-        <h2>Zoe's Activities - Mission Control</h2>
-        <div class="progress-container"><div id="progress-bar"></div></div>
-        <div class="grid" id="task-grid"></div>
-        <div style="margin-top:20px; font-style: italic; color: #94a3b8;" id="status">Systems Active</div>
-    </div>
+    <h2>Control Center</h2>
+    <div class="progress-container"><div id="progress-bar"></div></div>
+    
+    <div class="grid" id="task-grid"></div>
 
-    <div class="secret-trigger" onclick="handleSecretTap()"></div>
+    <div id="status" style="margin-top: 20px; color: #94a3b8;">Systems Ready</div>
+
+    <button class="admin-trigger-btn" onclick="handleSecretTap()">Open Admin Menu (Tap 3x)</button>
 
     <div id="parent-portal">
-        <h3>Parent Settings</h3>
+        <h3>Edit Missions</h3>
         <div id="editor-list"></div>
-        <button class="admin-btn" onclick="saveTasks()" style="background: var(--accent); color: #000;">Save & Refresh</button>
-        <button class="admin-btn" onclick="resetProgress()">Reset Progress</button>
-        <button class="admin-btn" onclick="hidePortal()">Close</button>
+        <button onclick="saveTasks()" style="background: var(--accent); padding: 10px 20px; border: none; border-radius: 5px; font-weight: bold;">Save & Close</button>
+        <button onclick="resetProgress()" style="padding: 10px 20px; margin-left: 10px;">Reset All Progress</button>
     </div>
 
 <script>
     let tapCount = 0;
+    // Default tasks if none exist
     let currentTasks = JSON.parse(localStorage.getItem('myTasks')) || [
         { label: "Mission 1", done: false },
         { label: "Mission 2", done: false },
@@ -74,7 +78,6 @@
 
         const progress = (doneCount / currentTasks.length) * 100;
         document.getElementById('progress-bar').style.width = progress + '%';
-        if(progress === 100) document.getElementById('status').innerText = "All Missions Complete. Power Levels Maxed.";
     }
 
     function toggleTask(index) {
@@ -83,14 +86,12 @@
         renderBoard();
     }
 
-    // Secret access logic
     function handleSecretTap() {
         tapCount++;
-        if (tapCount >= 5) {
+        if (tapCount >= 3) {
             document.getElementById('parent-portal').style.display = 'block';
             renderEditor();
             tapCount = 0;
-            window.scrollTo(0, document.body.scrollHeight);
         }
     }
 
@@ -109,16 +110,16 @@
             task.label = document.getElementById(`edit-${i}`).value;
         });
         localStorage.setItem('myTasks', JSON.stringify(currentTasks));
-        location.reload();
+        document.getElementById('parent-portal').style.display = 'none';
+        renderBoard();
     }
 
     function resetProgress() {
         currentTasks.forEach(t => t.done = false);
         localStorage.setItem('myTasks', JSON.stringify(currentTasks));
-        location.reload();
+        document.getElementById('parent-portal').style.display = 'none';
+        renderBoard();
     }
-
-    function hidePortal() { document.getElementById('parent-portal').style.display = 'none'; }
 
     renderBoard();
 </script>
