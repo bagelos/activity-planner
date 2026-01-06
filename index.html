@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>My Choice Board</title>
+    <style>
+        :root {
+            --bg: #1a1a2e;
+            --card: #16213e;
+            --accent: #4ecca3;
+            --text: #ffffff;
+        }
+        body { 
+            font-family: 'Segoe UI', sans-serif; 
+            background: var(--bg); color: var(--text); 
+            margin: 0; padding: 20px; touch-action: manipulation;
+        }
+        .header { text-align: left; margin-bottom: 20px; }
+        
+        /* Power Meter - Progress without Pressure */
+        .progress-container {
+            background: #0f3460; border-radius: 20px; height: 25px;
+            width: 100%; margin-bottom: 30px; border: 2px solid var(--accent);
+        }
+        #progress-bar {
+            background: var(--accent); height: 100%; width: 0%;
+            border-radius: 18px; transition: width 0.5s ease;
+        }
+
+        /* The Grid */
+        .grid {
+            display: grid; grid-template-columns: 1fr 1fr; gap: 15px;
+        }
+        .tile {
+            background: var(--card); border-radius: 15px; padding: 25px 15px;
+            text-align: center; border: 1px solid #0f3460;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.3); font-weight: bold;
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+        }
+        .tile.active:active { transform: scale(0.95); background: #0f3460; }
+        .tile.completed { border-color: var(--accent); opacity: 0.4; }
+        
+        .reward-zone {
+            margin-top: 30px; padding: 20px; background: #0f3460;
+            border-radius: 15px; border: 2px dashed var(--accent);
+        }
+    </style>
+</head>
+<body>
+
+    <div class="header">
+        <h2 id="greeting">The Dashboard</h2>
+        <p style="color: #94a3b8;">You choose the order. Everything else is secondary.</p>
+    </div>
+
+    <div class="progress-container">
+        <div id="progress-bar"></div>
+    </div>
+
+    <div class="grid" id="task-grid">
+        </div>
+
+    <div class="reward-zone" id="reward-area">
+        🏆 <strong>Current Status:</strong> <span id="status">Exploring</span>
+    </div>
+
+<script>
+    // EDIT TASKS HERE: You can easily swap these out daily
+    const tasks = [
+        { id: 1, label: "Morning Fuel 🍎", points: 25 },
+        { id: 2, label: "Tech Time 🎮", points: 25 },
+        { id: 3, label: "Body Move 🏃‍♂️", points: 25 },
+        { id: 4, label: "Secret Mission 🕵️", points: 25 }
+    ];
+
+    let completedPoints = 0;
+    const totalPoints = tasks.reduce((acc, t) => acc + t.points, 0);
+
+    const grid = document.getElementById('task-grid');
+
+    tasks.forEach(task => {
+        const div = document.createElement('div');
+        div.className = 'tile active';
+        div.innerHTML = `<span>${task.label}</span>`;
+        div.onclick = function() {
+            if (!this.classList.contains('completed')) {
+                this.classList.add('completed');
+                updateProgress(task.points);
+            }
+        };
+        grid.appendChild(div);
+    });
+
+    function updateProgress(points) {
+        completedPoints += points;
+        const percent = (completedPoints / totalPoints) * 100;
+        document.getElementById('progress-bar').style.width = percent + '%';
+        
+        if (percent >= 100) {
+            document.getElementById('status').innerText = "System Fully Charged! Choice Time unlocked.";
+            document.getElementById('reward-area').style.background = "#4ecca3";
+            document.getElementById('reward-area').style.color = "#1a1a2e";
+        }
+    }
+</script>
+</body>
+</html>
