@@ -3,102 +3,124 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Zoe's Activity Choice Board</title>
+    <title>My Dashboard</title>
     <style>
-        :root {
-            --bg: #1a1a2e;
-            --card: #16213e;
-            --accent: #4ecca3;
-            --text: #ffffff;
-        }
-        body { 
-            font-family: 'Segoe UI', sans-serif; 
-            background: var(--bg); color: var(--text); 
-            margin: 0; padding: 20px; touch-action: manipulation;
-        }
-        .header { text-align: left; margin-bottom: 20px; }
+        :root { --bg: #1a1a2e; --card: #16213e; --accent: #4ecca3; --text: #ffffff; }
+        body { font-family: 'Segoe UI', sans-serif; background: var(--bg); color: var(--text); margin: 0; padding: 20px; touch-action: manipulation; }
         
-        /* Power Meter - Progress without Pressure */
-        .progress-container {
-            background: #0f3460; border-radius: 20px; height: 25px;
-            width: 100%; margin-bottom: 30px; border: 2px solid var(--accent);
-        }
-        #progress-bar {
-            background: var(--accent); height: 100%; width: 0%;
-            border-radius: 18px; transition: width 0.5s ease;
-        }
+        /* Progress Bar */
+        .progress-container { background: #0f3460; border-radius: 20px; height: 25px; width: 100%; margin: 20px 0; border: 2px solid var(--accent); overflow: hidden; }
+        #progress-bar { background: var(--accent); height: 100%; width: 0%; transition: width 0.5s ease; }
 
-        /* The Grid */
-        .grid {
-            display: grid; grid-template-columns: 1fr 1fr; gap: 15px;
+        /* Grid Layout */
+        .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
+        .tile { 
+            background: var(--card); border-radius: 15px; padding: 25px 10px; text-align: center; 
+            border: 1px solid #0f3460; box-shadow: 0 4px 15px rgba(0,0,0,0.3); font-weight: bold;
+            min-height: 80px; display: flex; align-items: center; justify-content: center;
         }
-        .tile {
-            background: var(--card); border-radius: 15px; padding: 25px 15px;
-            text-align: center; border: 1px solid #0f3460;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.3); font-weight: bold;
-            display: flex; flex-direction: column; align-items: center; justify-content: center;
-        }
-        .tile.active:active { transform: scale(0.95); background: #0f3460; }
-        .tile.completed { border-color: var(--accent); opacity: 0.4; }
+        .tile.completed { border-color: var(--accent); opacity: 0.3; }
+
+        /* Hidden Parent Section */
+        #parent-portal { display: none; margin-top: 40px; padding: 20px; background: #243447; border-radius: 15px; border: 1px solid #444; }
+        .admin-btn { background: #444; color: white; border: none; padding: 10px; margin: 5px; border-radius: 5px; font-size: 12px; }
+        .input-group { margin-bottom: 10px; }
+        input { width: 80%; padding: 8px; border-radius: 5px; border: none; }
         
-        .reward-zone {
-            margin-top: 30px; padding: 20px; background: #0f3460;
-            border-radius: 15px; border: 2px dashed var(--accent);
-        }
+        .secret-trigger { height: 40px; width: 100%; margin-top: 50px; opacity: 0.1; }
     </style>
 </head>
 <body>
 
-    <div class="header">
-        <h2 id="greeting">Zoe's Activity Dashboard</h2>
-        <p style="color: #94a3b8;">You choose the activity. Everything else is secondary.</p>
+    <div id="main-ui">
+        <h2>Control Center</h2>
+        <div class="progress-container"><div id="progress-bar"></div></div>
+        <div class="grid" id="task-grid"></div>
+        <div style="margin-top:20px; font-style: italic; color: #94a3b8;" id="status">Systems Active</div>
     </div>
 
-    <div class="progress-container">
-        <div id="progress-bar"></div>
-    </div>
+    <div class="secret-trigger" onclick="handleSecretTap()"></div>
 
-    <div class="grid" id="task-grid">
-        </div>
-
-    <div class="reward-zone" id="reward-area">
-        🏆 <strong>Current Status:</strong> <span id="status">Exploring</span>
+    <div id="parent-portal">
+        <h3>Parent Settings</h3>
+        <div id="editor-list"></div>
+        <button class="admin-btn" onclick="saveTasks()" style="background: var(--accent); color: #000;">Save & Refresh</button>
+        <button class="admin-btn" onclick="resetProgress()">Reset Progress</button>
+        <button class="admin-btn" onclick="hidePortal()">Close</button>
     </div>
 
 <script>
-    const grid = document.getElementById('task-grid');
-    let completedPoints = 0;
+    let tapCount = 0;
+    let currentTasks = JSON.parse(localStorage.getItem('myTasks')) || [
+        { label: "Mission 1", done: false },
+        { label: "Mission 2", done: false },
+        { label: "Mission 3", done: false },
+        { label: "Mission 4", done: false }
+    ];
 
-    // This fetches the tasks from your separate JSON file
-    fetch('tasks.json')
-        .then(response => response.json())
-        .then(tasks => {
-            const totalPoints = tasks.reduce((acc, t) => acc + t.points, 0);
-            
-            tasks.forEach(task => {
-                const div = document.createElement('div');
-                div.className = 'tile active';
-                div.innerHTML = `<span>${task.label}</span>`;
-                div.onclick = function() {
-                    if (!this.classList.contains('completed')) {
-                        this.classList.add('completed');
-                        updateProgress(task.points, totalPoints);
-                    }
-                };
-                grid.appendChild(div);
-            });
+    function renderBoard() {
+        const grid = document.getElementById('task-grid');
+        grid.innerHTML = '';
+        let doneCount = 0;
+
+        currentTasks.forEach((task, index) => {
+            const div = document.createElement('div');
+            div.className = `tile ${task.done ? 'completed' : ''}`;
+            div.innerHTML = `<span>${task.label}</span>`;
+            div.onclick = () => toggleTask(index);
+            grid.appendChild(div);
+            if(task.done) doneCount++;
         });
 
-    function updateProgress(points, total) {
-        completedPoints += points;
-        const percent = (completedPoints / total) * 100;
-        document.getElementById('progress-bar').style.width = percent + '%';
-        
-        if (percent >= 100) {
-            document.getElementById('status').innerText = "Mission Complete! 🏆";
-            document.getElementById('reward-area').style.background = "#4ecca3";
+        const progress = (doneCount / currentTasks.length) * 100;
+        document.getElementById('progress-bar').style.width = progress + '%';
+        if(progress === 100) document.getElementById('status').innerText = "All Missions Complete. Power Levels Maxed.";
+    }
+
+    function toggleTask(index) {
+        currentTasks[index].done = !currentTasks[index].done;
+        localStorage.setItem('myTasks', JSON.stringify(currentTasks));
+        renderBoard();
+    }
+
+    // Secret access logic
+    function handleSecretTap() {
+        tapCount++;
+        if (tapCount >= 5) {
+            document.getElementById('parent-portal').style.display = 'block';
+            renderEditor();
+            tapCount = 0;
+            window.scrollTo(0, document.body.scrollHeight);
         }
     }
+
+    function renderEditor() {
+        const container = document.getElementById('editor-list');
+        container.innerHTML = '';
+        currentTasks.forEach((task, i) => {
+            container.innerHTML += `<div class="input-group">
+                <input type="text" value="${task.label}" id="edit-${i}">
+            </div>`;
+        });
+    }
+
+    function saveTasks() {
+        currentTasks.forEach((task, i) => {
+            task.label = document.getElementById(`edit-${i}`).value;
+        });
+        localStorage.setItem('myTasks', JSON.stringify(currentTasks));
+        location.reload();
+    }
+
+    function resetProgress() {
+        currentTasks.forEach(t => t.done = false);
+        localStorage.setItem('myTasks', JSON.stringify(currentTasks));
+        location.reload();
+    }
+
+    function hidePortal() { document.getElementById('parent-portal').style.display = 'none'; }
+
+    renderBoard();
 </script>
 </body>
 </html>
