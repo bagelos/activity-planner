@@ -66,41 +66,37 @@
     </div>
 
 <script>
-    // EDIT TASKS HERE: You can easily swap these out daily
-    const tasks = [
-        { id: 1, label: "Morning Fuel 🍎", points: 25 },
-        { id: 2, label: "Tech Time 🎮", points: 25 },
-        { id: 3, label: "Body Move 🏃‍♂️", points: 25 },
-        { id: 4, label: "Secret Mission 🕵️", points: 25 }
-    ];
-
-    let completedPoints = 0;
-    const totalPoints = tasks.reduce((acc, t) => acc + t.points, 0);
-
     const grid = document.getElementById('task-grid');
+    let completedPoints = 0;
 
-    tasks.forEach(task => {
-        const div = document.createElement('div');
-        div.className = 'tile active';
-        div.innerHTML = `<span>${task.label}</span>`;
-        div.onclick = function() {
-            if (!this.classList.contains('completed')) {
-                this.classList.add('completed');
-                updateProgress(task.points);
-            }
-        };
-        grid.appendChild(div);
-    });
+    // This fetches the tasks from your separate JSON file
+    fetch('tasks.json')
+        .then(response => response.json())
+        .then(tasks => {
+            const totalPoints = tasks.reduce((acc, t) => acc + t.points, 0);
+            
+            tasks.forEach(task => {
+                const div = document.createElement('div');
+                div.className = 'tile active';
+                div.innerHTML = `<span>${task.label}</span>`;
+                div.onclick = function() {
+                    if (!this.classList.contains('completed')) {
+                        this.classList.add('completed');
+                        updateProgress(task.points, totalPoints);
+                    }
+                };
+                grid.appendChild(div);
+            });
+        });
 
-    function updateProgress(points) {
+    function updateProgress(points, total) {
         completedPoints += points;
-        const percent = (completedPoints / totalPoints) * 100;
+        const percent = (completedPoints / total) * 100;
         document.getElementById('progress-bar').style.width = percent + '%';
         
         if (percent >= 100) {
-            document.getElementById('status').innerText = "System Fully Charged! Choice Time unlocked.";
+            document.getElementById('status').innerText = "Mission Complete! 🏆";
             document.getElementById('reward-area').style.background = "#4ecca3";
-            document.getElementById('reward-area').style.color = "#1a1a2e";
         }
     }
 </script>
